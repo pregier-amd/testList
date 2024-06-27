@@ -1,0 +1,109 @@
+[
+    {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://amd.qtestnet.com/api/v3/projects/129172/requirements/23466107",
+            },
+            {
+                "rel": "module",
+                "href": "https://amd.qtestnet.com/api/v3/projects/129172/modules/43375290",
+            },
+        ],
+        "id": 23466107,
+        "name": "FID_34_IOHC - CXL Enablement",
+        "order": 99,
+        "pid": "RQ-1719",
+        "created_date": "2023-04-11T08:26:53-05:00",
+        "last_modified_date": "2024-01-11T02:50:13-06:00",
+        "properties": [
+            {
+                "field_id": 12961876,
+                "field_name": "Status",
+                "field_value": "911",
+                "field_value_name": "New",
+            },
+            {
+                "field_id": 12961877,
+                "field_name": "Priority",
+                "field_value": "2575028",
+                "field_value_name": "P1",
+            },
+            {
+                "field_id": 12961878,
+                "field_name": "Type",
+                "field_value": "801",
+                "field_value_name": "Functional",
+            },
+            {
+                "field_id": 12961871,
+                "field_name": "Assigned To",
+                "field_value": "",
+                "field_value_name": "",
+            },
+            {"field_id": 12961880, "field_name": "Description", "field_value": ""},
+            {
+                "field_id": 12998001,
+                "field_name": "Restricted Description Links",
+                "field_value": "",
+            },
+            {
+                "field_id": 12998003,
+                "field_name": "Ip",
+                "field_value": "29",
+                "field_value_name": "IOHC",
+            },
+            {
+                "field_id": 12998006,
+                "field_name": "Sub Ip",
+                "field_value": "35",
+                "field_value_name": "IOHC",
+            },
+            {
+                "field_id": 12998008,
+                "field_name": "Category",
+                "field_value": "[3]",
+                "field_value_name": "[Legacy]",
+            },
+            {
+                "field_id": 12998010,
+                "field_name": "Commitment",
+                "field_value": "[1]",
+                "field_value_name": "[Yes]",
+            },
+            {
+                "field_id": 12998012,
+                "field_name": "Commitment Exceptions",
+                "field_value": "",
+                "field_value_name": "",
+            },
+            {
+                "field_id": 12998015,
+                "field_name": "Entitlement",
+                "field_value": "[1]",
+                "field_value_name": "[Yes]",
+            },
+            {
+                "field_id": 12998016,
+                "field_name": "Entitlement Exceptions",
+                "field_value": "",
+                "field_value_name": "",
+            },
+            {"field_id": 12998021, "field_name": "% TP Done", "field_value": "100"},
+            {"field_id": 12998022, "field_name": "# Written", "field_value": "1"},
+            {
+                "field_id": 12998020,
+                "field_name": "Releases",
+                "field_value": "[12]",
+                "field_value_name": "[Select]",
+            },
+            {"field_id": 12998023, "field_name": "% Code Done", "field_value": "100"},
+            {"field_id": 12998024, "field_name": "Jira ID", "field_value": ""},
+            {"field_id": 12998026, "field_name": "JAMA ID", "field_value": ""},
+            {"field_id": 12998028, "field_name": "JAMA Global ID", "field_value": ""},
+            {"field_id": 13428173, "field_name": "JAMA Status", "field_value": ""},
+        ],
+        "web_url": "https://amd.qtestnet.com/p/129172/portal/project#tab=requirements&object=5&id=23466107",
+        "parent_id": 43375290,
+    }
+]
