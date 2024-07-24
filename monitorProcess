@@ -1,0 +1,5 @@
+INFO - 2024-07-17 07:32:33,017 - Logging to File: monitorProcess
+INFO - 2024-07-17 07:32:33,017 - C:\Users\pregier\Documents\qTest\python\qTestAPI\monitorProcess.py
+INFO - 2024-07-17 07:32:33,020 - {'monitor': ['{"pid": 29144, "cmdline": "python3 workload1.py", "exec_limit": 15, "execFname": "C:\\\\\\\\Users\\\\\\\\pregier\\\\\\\\Documents\\\\\\\\qTest\\\\\\\\python\\\\\\\\qTestAPI\\\\\\\\log/19600_exec.log", "lockFname": "C:\\\\\\\\Users\\\\\\\\pregier\\\\\\\\Documents\\\\\\\\qTest\\\\\\\\python\\\\\\\\qTestAPI\\\\\\\\log/19600_lock.yml", "loop_checkpoint_timeout": 2}']}
+INFO - 2024-07-17 07:32:33,020 - Monitoring Start for PID: 29144
+INFO - 2024-07-17 07:32:33,021 - execFname: C:\\Users\\pregier\\Documents\\qTest\\python\\qTestAPI\\log/19600_exec.log

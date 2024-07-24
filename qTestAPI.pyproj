@@ -4,15 +4,18 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>80e4dceb-e289-485f-beb4-6da3151ff33f</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>testList.py</StartupFile>
+    <StartupFile>execute.py</StartupFile>
     <SearchPath>
     </SearchPath>
-    <WorkingDirectory>.</WorkingDirectory>
+    <WorkingDirectory>C:\Users\pregier\Documents\qTest\python\qTestAPI</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>qTestAPI</Name>
     <RootNamespace>qTestAPI</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
     <SuppressEnvironmentCreationPrompt>True</SuppressEnvironmentCreationPrompt>
+    <TestFramework>pytest</TestFramework>
+    <UnitTestPattern>test*.py</UnitTestPattern>
+    <UnitTestRootDirectory>.</UnitTestRootDirectory>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>

@@ -1,0 +1,12 @@
+INFO - 2024-07-17 07:42:28,846 - Logging to File: execute
+INFO - 2024-07-17 07:42:29,091 - Starting Workload with Parameters: {'verbose': ['info'], 'run': ['{"cmd": "python3 workload1.py"}'], 'run_limit': ['15'], 'lock_log_dir': ['./log']}
+INFO - 2024-07-17 07:42:29,092 - to_sec(15)=15
+INFO - 2024-07-17 07:42:29,092 - run workload: cmdline: {"cmd": "python3 workload1.py"}
+INFO - 2024-07-17 07:42:29,143 - runShell Sub Process: <Popen: returncode: None args: 'python3 workload1.py'>
+INFO - 2024-07-17 07:42:29,143 - Execute: cmd: python3 workload1.py Execute PID: 26140 Execute File: C:\Users\pregier\Documents\qTest\python\qTestAPI\log/12316_exec.log
+INFO - 2024-07-17 07:42:29,143 - Python Format LockArgs: 
+INFO - 2024-07-17 07:42:29,143 - {'pid': 26140, 'cmdline': 'python3 workload1.py', 'exec_limit': 15, 'execFname': 'C:\\Users\\pregier\\Documents\\qTest\\python\\qTestAPI\\log/12316_exec.log', 'lockFname': 'C:\\Users\\pregier\\Documents\\qTest\\python\\qTestAPI\\log/12316_lock.yml', 'loop_checkpoint_timeout': 2}
+INFO - 2024-07-17 07:42:29,182 - runShell Sub Process: <Popen: returncode: None args: 'python3 monitorProcess.py -m  "{\\"pid\\": 2...>
+INFO - 2024-07-17 07:42:29,183 - Monitor Command: python3 monitorProcess.py -m  "{\"pid\": 26140, \"cmdline\": \"python3 workload1.py\", \"exec_limit\": 15, \"execFname\": \"C:\\\\Users\\\\pregier\\\\Documents\\\\qTest\\\\python\\\\qTestAPI\\\\log/12316_exec.log\", \"lockFname\": \"C:\\\\Users\\\\pregier\\\\Documents\\\\qTest\\\\python\\\\qTestAPI\\\\log/12316_lock.yml\", \"loop_checkpoint_timeout\": 2}"sub Process PID: 41240Lock File: ./log/lock.yml
+INFO - 2024-07-17 07:42:29,183 - Monitor args: python3 monitorProcess.py -m  "{\"pid\": 26140, \"cmdline\": \"python3 workload1.py\", \"exec_limit\": 15, \"execFname\": \"C:\\\\Users\\\\pregier\\\\Documents\\\\qTest\\\\python\\\\qTestAPI\\\\log/12316_exec.log\", \"lockFname\": \"C:\\\\Users\\\\pregier\\\\Documents\\\\qTest\\\\python\\\\qTestAPI\\\\log/12316_lock.yml\", \"loop_checkpoint_timeout\": 2}"
+ERROR - 2024-07-17 07:42:29,183 - Failed to Launch lock Process 
