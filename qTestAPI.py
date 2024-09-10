@@ -39,7 +39,7 @@ else:
 #except:
 #    pass
 class QtestAPI(object):
-    def __init__(self,config_file='config.ini'):
+    def __init__(self,config_file='config.ini',logger=None):
         if(config_file):
            self.config_file = config_file
         self.cfg = configparser.ConfigParser(interpolation=None)
@@ -51,8 +51,10 @@ class QtestAPI(object):
         # Setup the Logger.
         #self.filebase = os.path.splitext(sys.argv[0])[0]
         #self.logger = Log_Class(self.filebase).logger
-
-        self.logger = logging.getLogger()
+        if not logger:
+            self.logger = logging.getLogger()
+        else:
+            self.logger = logger
         
         
         self.script_path=os.path.dirname(os.path.realpath(__file__))
@@ -115,7 +117,9 @@ class QtestAPI(object):
         data['query']= query
     
         # Loop through needed entries
+        self.logger.info("Submit Pages for xfer: " + str(maxpage) )
         for cnt in range(page,maxpage+1) :
+            self.logger.debug("Submit Queue: " + str(cnt) )
             data['page'] = cnt
             # Send the Dictionary to the Queue
             queue.put(data.copy())
@@ -144,14 +148,18 @@ class QtestAPI(object):
         while True:
             # Queue up each Table to be Processed by a thread.
             d =  queue.get()
-            thread = threading.get_ident()
+#            thread = threading.get_ident()
             msg = "Endpoint Queue Worker: " + str(threading.current_thread().name) 
             self.logger.info(msg)
             # print(msg)
             
             # perform Endpoint Operation and return Data.   
             #data = self.get(self.server,self.token,self.page_size,d['page'],'asc',d['query']) 
-            data = self.get(d['tablename'],d['endpoint'],d['lastmodified'],d['filtpat'],d['params'])
+     #       def get(self, server=None, uri=None, token=None, endpoint=None,parameters=None):
+# orig           data = self.get(d['tablename'],d['endpoint'],d['lastmodified'],d['filtpat'],d['params'])
+            data = self.get(self.server,None,None,d['endpoint'],d['params'])
+
+           
 
             # if there was data transfered save it.
             if(data):
@@ -191,11 +199,23 @@ class QtestAPI(object):
             queue.task_done()
             
     def update_buffer(self,buffer=None,tag=None,data=None):
-        if not tag in buffer:
-            buffer[tag] = []
-            # Save the Data.
-        buffer[tag] = buffer[tag] + data
-        
+        if data:
+            if 'items' in data:
+#                data = self.search_obj_normalize_data(data,tag)
+                 data = data['items']
+            if not tag in buffer:
+                buffer[tag] = [] 
+
+            if isinstance(data,dict):
+#                    buffer[tag] = buffer[tag] + data
+                    buffer[tag].append(data)
+                    return buffer[tag]
+
+            # Save the Data.    
+            if isinstance(data,list):
+                for row in data:
+                    buffer[tag].append(row)
+        return buffer[tag]
    
 
 
@@ -210,6 +230,7 @@ class QtestAPI(object):
         # size = page_size
         self.page_size_params['page'] = 1
         self.page_size_params['size'] = self.page_size         
+        self.page_size_params['pageSize'] = self.page_size         
         self.page_size_params['transfer_cnt'] =  0
         self.page_size_params['getmore'] = True
 
@@ -236,14 +257,16 @@ class QtestAPI(object):
 
         if not parameters:
            parameters =  self.parameters
-        param = None           
+        param = ''           
         for k in parameters:
             # no Parameters on Endpoint already
             m = re.match(r'^.*\?',endpoint)
-            param=''
+#            param=''
+            seperator = '&'
             if not param and not m:
-                param = '?'
-            param = param + '&'+str(k)+'='+str(parameters[k])
+                seperator = '?'
+            else:
+                param = param + seperator+str(k)+'='+str(parameters[k])
 
         m = re.match(r'.*\/projects\/',uri)    
         if(m):
@@ -273,7 +296,10 @@ class QtestAPI(object):
         return data
 
         #return json.dumps(results.json(),indent=4, separators=(',', ':'))
-
+    def get_execution_status(self):
+        endpoint = 'test-runs/execution-statuses'
+        data = self.get(None, None, None, endpoint,None)
+        return data
     def search(self, server, token,  page_size=None, page=None, order='asc',query=None):
         """Get list of assets,use search query in body
         
@@ -287,6 +313,8 @@ class QtestAPI(object):
             [string] -- List of data from the server, in JSON formatted
         """
         self.endpoint = '/search/'
+        if not token:
+            token = self.token
 
         if query is None:
             return
@@ -303,15 +331,71 @@ class QtestAPI(object):
             self.page = page
 
         uri = self.uri + str(self.project_id) + self.endpoint +'?pageSize={0}&page={1}&order={2}&includeExternalProperties={3}'.format(str(page_size),str(page),order,'true')
-
+        if not server:
+           server = self.server
         server = server + uri 
         headers = {'Authorization': 'Bearer {0}'.format(token)}
         results = requests.post(server, headers=headers, json=query)
         return results.json() #results.content
-    
+
+    def post(self, server, token, endpoint=None,parameters=None,body=None):
+        """Post using  body
+        
+        Arguments:
+            server {string} -- Server URI
+            token {string}  -- Token value to be used for accessing the API
+            page_size {int} -- chunk transfer size
+            query           -- 
+        
+        Returns:
+            [string] -- List of data from the server, in JSON formatted
+        """
+        if not endpoint:
+            self.logger.error("No Endpoint Provided to qTestAPI Post")
+            return 
+        
+        if not token:
+            token = self.token
+
+        if body is None:
+            return
+
+        if not parameters:
+           parameters =  self.parameters
+        param = ''           
+        for k in parameters:
+            # no Parameters on Endpoint already
+            m = re.match(r'^.*\?',endpoint)
+#            param=''
+            seperator = '&'
+            if not param and not m:
+                seperator = '?'
+            param = param + seperator+str(k)+'='+str(parameters[k])
+
+        uri = self.uri + str(self.project_id) + endpoint
+
+        if not server:
+           server = self.server
+
+#        if param:
+#            uri = uri + param
+ 
+
+        server = str(server) + uri 
+        headers = {'Authorization': 'Bearer {0}'.format(token)}
+        results = requests.post(server, headers=headers, json=body)
+        self.check_results(results)
+
+        return results.json()
+    def check_results(self,results=None):
+        m = re.match('.*40',str(results))
+        if m:
+            self.logger.info("Request Failed: " + str(results.json()) )
+
     def get_all_matrix_queued(self,tablename=None,endpoint=None,lastmodified=None,filtpat=None,parameters={}):
         
         # initialize parameters to Page=1, getmore = True
+        self.init_db()
         params = self.page_size_params
 
         if parameters:
@@ -328,7 +412,8 @@ class QtestAPI(object):
         cmd_dict['lastmodified'] = lastmodified
         cmd_dict['filtpat'] = filtpat
         cmd_dict['maxpages'] = maxthreads
-
+        cmd_dict['params']['page'] = 1
+        
 
         # params['getmore'] == True reset by initdb.
         
@@ -337,6 +422,8 @@ class QtestAPI(object):
            # Data saved in self.endpoint_buffer[tablename]
            # Clear it.
            self.endpoint_buffer[tablename] = []
+
+
            #Pass the interesting data to que based endpoint function
            # Blocks untill all queued threads are complete.
            # get_queued submits range(page, maxthreads + 1) 
@@ -347,13 +434,18 @@ class QtestAPI(object):
            # Stop
            #  data = self.get(tablename,endpoint,lastmodified,filtpat,params)
            if(data):
-               outdata = outdata + data
+               outdata.extend(data)
            #if the len(data) > 0 then increment page. else set params['getmore'] to False
            # get_queued submits page to maxthreads 
-           cmd_dict['params'] = self.get_more_next_page(data,cmd_dict['params'],0)
-           cmd_dict['params']['page'] += 1
-           cmd_dict['maxpages'] += maxthreads
+           cmd_dict['params'] = self.get_more_next_page(data,cmd_dict['params'])
+
+           # Submit the number of threads available.
+           # range(page,maxendpointthreads +1 )  Eg.range(1,2)  Submits 1
+           cmd_dict['maxpages'] = cmd_dict['params']['page'] + self.maxendpointthreads
         
+
+           self.logger.warning("transfered: " + str( len(outdata)) + " Page: " + str( cmd_dict['params']['page']) )
+
         return outdata
     
     def get_queued(self,indata=None):
@@ -361,7 +453,7 @@ class QtestAPI(object):
            # Submit to queue multiple Pages in parallel
            # wait for que to finish join()
            # Return the data.
-
+           self.endpoint_buffer[indata['tablename']] = []
            self.submit_endpoint_queue(self.endpoint_queue,indata)
            # Get the Data After the Queue has Finished
            data = self.endpoint_buffer[indata['tablename']]
@@ -385,7 +477,7 @@ class QtestAPI(object):
            params = self.get_more_next_page(data,params)
         return outdata
              
-    def get_endpoint(self,tablename=None,endpoint=None,lastmodified=None,filtpat=None,parameters=None):
+    def get_endpoint(self,tablename=None,endpoint=None,lastmodified=None,filtpat=None,parameters=None,child=None):
         # Set endpoint Value.
         # releases,cycles,etc..
         if(endpoint):
@@ -415,13 +507,19 @@ class QtestAPI(object):
                 self.tc_cnt = 0
                 self.flat_req_test_tc(data,1)
                 data =  self.matrix_outdata
-
             case 'generic':
                 uri = self.uri
                 parameters = None
-                data = self.get(self.server, uri,None,endpoint,parameters)
-                if 'items' in data:
-                    data = data['items']
+                match child:
+                    case 'test-runs' | 'test-cases':
+                        # get_all_matrix_queued(self,tablename=None,endpoint=None,lastmodified=None,filtpat=None,parameters={}
+                        data = self.get_all_matrix_queued(tablename,endpoint,None,None,parameters)
+                        if 'items' in data:
+                            data = data['items']
+                    case _:
+                        # Default
+                        data = self.get(self.server, uri,None,endpoint,parameters)
+
             case _:
                 uri = self.uri
                 data = self.get(self.server, uri,None,endpoint,parameters)
@@ -433,9 +531,12 @@ class QtestAPI(object):
         self.total = len(data)
 
         if(len(data) < 1):
-            self.logger.warning("Warning: No Data Found for Endpoint: " + str(self.server) )
+            self.logger.warning("Warning: No Data Found for Endpoint: " + str(endpoint) )
             self.logger.warning("Response: " + str(data) )
             return data
+        else:
+            self.logger.info("Warning Found Records: " + str( len(data) ) + " Found for Endpoint: " + str(endpoint) )
+
         
         if lastmodified:
             # Filter based on lastmodified, String Date/Time , then key in data.
@@ -494,6 +595,8 @@ class QtestAPI(object):
     def get_more_next_page(self,data=None,params={}):
 
         # returns parameters
+        if not isinstance(data,list):
+            data = []
         if len(data) > 0 :
             # Get the Next Page
             params['page'] =   params['page'] + 1
@@ -667,21 +770,22 @@ class QtestAPI(object):
             total= data['total'] 
             # Calculate the Number of Pages needed to get the toal record count.
             # then Add then add to the endpoint queue.         
-            maxpages = round(data['total'] / int(self.page_size) + 0.5)
+            maxpages = round(data['total'] / int(self.page_size) + 0.5) #- 1
             outdata = self.endpoint_buffer[tablename]
             # Creates queue Entries for each Page, and will be stored in
             # self.endpoint_buff['tagx']
             #Already transefered page 1 start with 2
             if maxpages > 1:
                 # Fill the Queue with 1 Entry Per Page.
-                self.submit_search_obj_queue(tablename,self.search_obj_queue,tablename,None,search_query,2,maxpages)
+                self.submit_search_obj_queue(tablename,self.search_obj_queue,tablename,None,search_query,page+1,maxpages)
                     
                 # Wait for the Buffer to be emptied                   
                 self.search_obj_queue.join()
+
                 # Workers from Queue populate the buffer.
                 outdata = self.endpoint_buffer[tablename]
                 if total != len(outdata):
-                    self.logger.error("Failed to Transefer data for table: " + tablename + "qTest Table Size:" + str(total) + "!= xfer: " + str( len(outdata)) )
+                    self.logger.error("Failed to Transfer data for table: " + tablename + "qTest Table Size:" + str(total) + "!= xfer: " + str( len(outdata)) )
 
         else:
             self.logger.error("Failed to Get Valid Data for Query: " + str(search_query) )
@@ -1037,6 +1141,21 @@ class QtestAPI(object):
         else:
             date =  now.strftime(format_string)
         return date      
+    def time_format(self,datetimestring=None,informat='%Y-%m-%dT%H:%M:%S%z',outformat='%Y-%m-%dT%H:%M:%S%z'):
+ #       now = datetime.now(ZoneInfo('America/Chicago'))
+        now = datetime.now(pytz.timezone('US/Central'))
+        if(datetimestring):
+            # convert from datetime to timestamp
+            try:
+                date =  datetime.strptime(datetimestring,informat)
+                date =  date.strftime(outformat)
+            except Exception as error:
+                self.logger.error("Time Format:", type(error).__name__, "-",error) 
+        else:
+            now = datetime.now()    
+            date =  now.strftime(outformat)
+        return date      
+ 
     def calc_duration(self,start_ts=None,end_ts=None):    
           end_ts = self.time_gen(True)
           duration = end_ts - start_ts

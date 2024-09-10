@@ -5,14 +5,16 @@ import argparse
 import os
 import re
 import sys
-from sqlServer import Log_Class
+from LogClass import LogClass
 import pandas as pd
 import os.path
 import json
 from ListFilter import ListFilter
+from LookupData import lookup_data
+import logging
 
 class test_list(object):
-    def __init__(self,config_file=None):
+    def __init__(self,config_file=None,filename=None):
             
         if(not config_file):
            config_file = 'config.ini'
@@ -24,18 +26,34 @@ class test_list(object):
         self.cfg.read(self.config_file)
 
         # setup the logger
-        filename ='/TEMP/' +  os.path.splitext(os.path.basename(__file__))[0] + '.log' 
-        self.log = Log_Class(filename)
-        
+        if not filename:
+            filename ='log/' +  os.path.splitext(os.path.basename(__file__))[0] + '.log' 
+
+        self.log = LogClass(None,filename)        
         self.logger = self.log.logger
         self.logger.setLevel(self.cfg['logger']['level'])
 
         # qTest Utilities
-        self.qta = QtestAPI(self.config_file)
-        self.qta.logger =self.logger
+        self.qta = QtestAPI(self.config_file,self.logger)
+        
+
+        self.logger.info('Constructor TestList Test Logger Info')
 
         #List Filter
         self.lf = ListFilter(self.logger,"config.ini")
+
+        # Lookp Utilities
+        self.ld = lookup_data(config_file,'lookup.log')
+        self.ld.logger = self.logger
+
+        # Storage for Object types
+        self.releases       = None
+        self.test_cycles    = None
+        self.test_suites    = None
+        self.test_runs      = None
+        self.test_cases     = None
+
+        self.logger.info('Test Logger Info')
 
 
 #    def search_for_container(self,args=None):
@@ -50,7 +68,7 @@ class test_list(object):
             self.logger.error("No Project Specified: Need parameter < -prj Diag Base Project>")
             return []
 
-        #use the verbose argument and se the logger level.
+        #use the verbose argument and set the logger level.
         self.set_logger_level(argsDict)
         filename = self.filename_format(argsDict)
 
@@ -93,7 +111,7 @@ class test_list(object):
                 # covert from dictionary to specific Filter format.
                 terms = self.set_filter(json.loads(terms) )
 
-                # Use the Filter ter,s to filter list
+                # Use the Filter terms to filter list
                 data = self.filter_list(data, terms)
 
 
@@ -140,6 +158,7 @@ class test_list(object):
         query = self.search_query(None,name,object_type,False)
         self.logger.info("Search query: " + str(query) )                               
         data = self.qta.search_object('generic',query['object_type'],None,None,query)
+        self.logger.info("get_object_list Total: " + str(len(data) ) )
         return data
 
     def filename_format(self,args={},include=None):
@@ -179,16 +198,18 @@ class test_list(object):
 
 
     def process_obj_data(self,objType=None,object_data=[],outrow={},outdata=[]):
-
         # loop through each of objects 
         if isinstance(object_data,dict):
             object_data = [object_data]
         for row in object_data:
+            #if empty dict  skip
+            if not len(row):
+                continue
 
-            self.logger.info("Obj: " + str(row['name']) )
             # Capture the Hierarchy     
             if 'name' in row:
                 self.outrow[objType] = row['name']
+                self.logger.info("Obj: " + str(row['name']) )
               
             match objType:
                 case 'releases':
@@ -197,37 +218,54 @@ class test_list(object):
                         child,leafdata = self.get_child_container_data(objType,row,mapRl)
                         # recursive call get the data in lower containers of row.
                         self.process_obj_data(child,leafdata,self.outrow,outdata)
-                    return outdata
+
                 case 'test-cycles':
                     new_href= self.build_self_href('self',row['links'],'test-cycle',row['id'], objType)
                     # add in in the sametype link to see if 2 Levels of cycle -> Cycle Hierarchy is present.
                     row['links'].append({'rel':objType,'href':new_href})                    
 
-                    # look for moree Cycle,Suites,Runs
+                    # look for more Cycles,Suites,Runs
                     for mapRl in [ {objType:objType},{'test-cycles':'test-suites'},{'test-cycles':'test-runs'}]:
                         # read from Object the next lower container data            
                         child,leafdata = self.get_child_container_data(objType,row,mapRl)
-                        # recursive call get the data in lower containers of row.
-                        self.process_obj_data(child,leafdata,self.outrow,outdata)
-                    return outdata
 
-                case 'test-runs':
-                    self.tr_row = row
-                case 'test-case':
-                    self.tc_row = row
-                    record = self.build_row(self.outrow,self.tr_row,self.tc_row)
-                    outdata.append(record)
-                    self.logger.debug("Test List Record: " + str(outdata) )
-                    return outdata
-                case '_':
-                    pass
-            # read from Object the next lower container data            
-            child,leafdata = self.get_child_container_data(objType,row)
+                        # Found the lowest level of Data test Runs
+                        if child == 'test-runs':
+                            for tr_row in leafdata:
+                                outdata = self.combine_runs_cases(tr_row,outdata)
+                        else:
+                            # recursive call get the data in lower containers of row.
+                            self.process_obj_data(child,leafdata,self.outrow,outdata)
+                case 'test-suites':
+                    # read from Object the next lower container data            
+                    child,leafdata = self.get_child_container_data(objType,row)
 
-            #recursive call get the data in lower containers of row.
-            self.process_obj_data(child,leafdata,self.outrow,outdata)
+                    #recursive call get the data in lower containers of row.
+#                    self.process_obj_data(child,leafdata,self.outrow,outdata)
+                    if child == 'test-runs':
+                        for tr_row in leafdata:
+                            outdata = self.combine_runs_cases(tr_row,outdata)
 
         return outdata
+
+
+    def combine_runs_cases(self,row=None,outdata=None):
+        # Lowest Level
+        # Lookup the Test Case:
+        # append to test run row
+        if not 'testCaseId' in row:
+            return outdata
+            #'testCaseId'
+        # lookup api: obj_data=None,object_type=None,matchValue=None,parentid=None,matchKey=None
+        filt_obj,self.test_cases =  self.lookup(self.test_cases,'test-cases', row['testCaseId'],None,'id') 
+        for tc in filt_obj:
+            record = self.build_row(self.outrow,row,tc)
+            outdata.append(record)
+            self.logger.debug("Test List Record: " + str(outdata) )
+        return outdata
+
+
+
 
     def build_self_href(self,child='self',links=None,object_type=None,parentId=None, parentType=None):
         # Convert Self Href by removing the ID
@@ -261,31 +299,63 @@ class test_list(object):
                 bdata[prefix + k] = json.dumps(adata[k])
             else:
                 bdata[prefix + k] = adata[k]
+
+
+
+
     def get_child_container_data(self,objType=None,indata=[],child_map=None):
         data = []
         # set the Next lower container,
-        # use the presented map if needed 
+        # use the presented map if needed case
         if not child_map:
             # Use filter function to find needed endpoint.
             child_map = { 'releases':'test-cycles','test-cycles':'test-suites','test-suites':'test-runs','test-runs':'test-case' }
         child = None
+
         if objType in  child_map:
             child = child_map[objType]
+
         if not child:
             return  [],data
+
         # lookup the link to the lower container
         if not 'links' in indata:
             self.logger.info("No links in object data:")
             return child,data
+
+        # Single Link for Child Level.
         # Filter the child link: links
         child_link = list( filter( lambda k: k['rel'] == child , indata['links']) )
         for row in child_link:
             endpoint  = re.match('.*\/(' + child + '.*)$',row['href']).group(1)
             if child == 'test-case':
                 endpoint = endpoint + '&' + 'expand=teststep'
-            if endpoint:
-                data = self.qta.get_endpoint('generic',endpoint,None,None,None)
+            # object_type=None,matchValue=None,parentid=None,matchKey=None)
+            match child:
+                case 'test-runs':
+                    # Pull all Data and use filter based on Parent
+                    matchKey ='parentId'
+                    value = self.format_lookup(matchKey,row['href'])
+                    data = self.look_up_flow(child,None,value,None)
+                case 'test-case':
+
+                    # Pull all Data and use filter based on Parent
+                    matchKey ='parent_id'
+                    value = self.format_lookup(matchKey,row['href'])
+                    data = self.look_up_flow(child,None,value,None)
+                case _:
+                    if endpoint:
+                        data = self.qta.get_endpoint('generic',endpoint,None,None,None,child)
         return (child,data)
+
+    def format_lookup(self,matchKey=None,href=None):
+        # build filter Pattern for Href to extract 
+        pat = '.*' + str(matchKey) + '=([0-9]*)&.*'
+        m = re.match( pat,href)
+        value = None
+        if m:
+            value = m[1]
+        return value
 
     def process_containers(self,pid=None,name=None,object_type=None,leaf=None):
 
@@ -305,10 +375,44 @@ class test_list(object):
                 case '_':
                     leaf = True
                     self.process_containers(self,pid=None,name=None,object_type=None,leaf=None)
+#        data.extend(lookup_data)
 
+        # Live Query to qTest to Pull Specific Object.
         query = self.search_query(pid,name,object_type,leaf)
         self.logger.info("process_containers Search query: " + str(query) )                               
-        data.extend( self.qta.search_object('generic',query['object_type'],None,None,query) )
+        query_data = self.qta.search_object('generic',query['object_type'],None,None,query)
+        data.extend(query_data )
+
+    def look_up_flow(self,object_type=None,matchValue=None,parentid=None,matchKey=None):
+        # 
+        match object_type:
+            # Manages a memory list of all objects of specific Type
+            # use filter method to get object matchign PID
+            # lookup API: obj_data,object_type,matchValue,parentid,matchKey=None
+               
+            case 'releases':
+                data,self.releases =  self.lookup(self.releases,object_type,matchValue,parentid,matchKey)          
+            case 'test-cycles':
+                data,self.test_cycles =  self.lookup(self.test_cycles,object_type,matchValue,parentid,matchKey)
+            case 'test-suites':
+                data,self.test_suites =  self.lookup(self.test_suites,object_type,matchValue,parentid,matchKey)        
+            case 'test-runs':
+                data,self.test_runs =  self.lookup(self.test_runs,object_type,matchValue,parentid,matchKey)        
+            case 'test-cases' | 'test-case':
+                object_type = object_type.replace('test-case','test-cases')
+                data,self.test_cases =  self.lookup(self.test_cases,object_type,matchValue,parentid,matchKey)        
+        self.logger.info('Look up ' + str(object_type) + ' Filter[' + str(matchKey)+']:' + str(matchValue))
+        self.logger.info('Data' +  str(data))
+        return data
+
+
+    def lookup(self,obj_data=None,object_type=None,matchValue=None,parentid=None,matchKey=None):
+        # initialize the input data if needed . Create the List.
+        if not obj_data:
+            obj_data = []
+        data =  self.ld.lookup_data(obj_data,object_type,matchValue,parentid,matchKey)
+        self.logger.info("Objs in Lookup, Found: " + str(len(data)) + " Type: " + str(object_type) )
+        return data
 
     def pid_to_object_type(self,pid=None):
         typesDict = {'rl-':'cycles', 'cl-':'test-suites', 'ts-':'test-runs', 'tr-':'test-cases'}
@@ -318,8 +422,7 @@ class test_list(object):
             if m:
                 data = typesDict[k]
         return data
-
-
+   
     def search_query(self,pid=None,name=None,object_type=None,leaf=True,fields='*'):       
         data = {'fields': fields}
         data['object_type'] = object_type
@@ -327,7 +430,7 @@ class test_list(object):
         m = re.match('^.*?-[0-9]*?$',name)
         if m:
             pid = name            
-        # Pull the data from the level below the current one in hte Hierarchy
+        # Pull the data from the level below the current one in the Hierarchy
         if leaf:
             typesDict = {'releases':'cycles','test-cycles':'test-suites','test-suites':'test-suites','test-suites':'test-cases'}
             # Lookup the next object type
@@ -350,7 +453,7 @@ class test_list(object):
            with pd.ExcelWriter(filename) as writer:
                 df = pd.DataFrame(data)
                 df.to_excel(writer, sheet_name='Sheet1',index=False)
-
+   
 
 if __name__ == "__main__":
     
@@ -400,15 +503,20 @@ if __name__ == "__main__":
 
 #    sys.argv.append('-ts')
 #    sys.argv.append('TS-174')
+ 
 
- #   sys.argv.append('-cl')
- #   sys.argv.append('Test List - MI350')    
-#    sys.argv.append('CL-269')
+    sys.argv.append('-cl')
+    sys.argv.append('CL-3')
+    # sys.argv.append('CL-267')
+    #   sys.argv.append('SLT A0')    
 
- #   sys.argv.append('-f')
- #   sys.argv.append('output/outfile.xlsx')
- #   sys.argv.append('-prj')
- #   sys.argv.append('Diags-Breithorn')
+
+    sys.argv.append('-f')
+    sys.argv.append('output/outfile.xlsx')
+    sys.argv.append('-prj')
+    sys.argv.append('Diags-MI3XX')
+#    sys.argv.append('DIAGS-Base Project')
+#    sys.argv.append('Diags-Breithorn')
 
 
     args = parser.parse_args()

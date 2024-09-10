@@ -1,0 +1,36 @@
+'Coverage: BP default (extmfg)':
+  Release_Flow:
+  - extmfg
+  Release_SKU:
+  - default
+  Release_Suite:
+  - BP
+'Coverage: BP default (qualmfg)':
+  Release_Flow:
+  - qualmfg
+  Release_SKU:
+  - default
+  Release_Suite:
+  - BP
+'Coverage: BP default (quickmfg)':
+  Release_Flow:
+  - quickmfg
+  Release_SKU:
+  - default
+  Release_Suite:
+  - BP
+'Coverage: SLT default (general, full)':
+  Release_Flow:
+  - full
+  Release_SKU:
+  - default
+  Release_Suite:
+  - SLT
+'Coverage: SLTQ default (sltq, full)':
+  Release_Flow:
+  - full
+  Release_SKU:
+  - default
+  Release_Suite:
+  - SLTQ
+

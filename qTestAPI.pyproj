@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>80e4dceb-e289-485f-beb4-6da3151ff33f</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>execute.py</StartupFile>
+    <StartupFile>write_tr.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>C:\Users\pregier\Documents\qTest\python\qTestAPI</WorkingDirectory>
