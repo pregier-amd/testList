@@ -122,7 +122,7 @@ class write_tr(object):
                         return 
                     tr_log_body = self.format_runlog(tr_row,row,tr_logs)
 
-            self.logger.info("Test Run Status: " + str(tr_log_body['status']['name']))
+            self.logger.info("Row:" + str(cnt) + " Test Run Status: " + str(tr_log_body['status']['name']))
             self.logger.debug("New Test Run Log Body: " + str(tr_log_body))
             self.logger.debug('TR:' + str(tr))
 
@@ -349,12 +349,12 @@ if __name__ == "__main__":
      parser.add_argument('-tr','--test_runs', nargs=1, type=str, help=' Include a Filename with Test Runs Exported from qTest' ) 
      parser.add_argument('-prj','--project', nargs=1, type=str, help='Name of Project' ) 
 
-     sys.argv.append('-tr')
+#     sys.argv.append('-tr')
 #     sys.argv.append('./input/test_tr_update.xls')
-     sys.argv.append('./input/DIAGS-Base Project-Test Run-20240912_50.xlsx')
+#     sys.argv.append('./input/DIAGS-Base Project-Test Run-20240912_50.xlsx')
 #     sys.argv.append('./input/DIAGS-Base Project-Test Run-20240912.xlsx')
-     sys.argv.append('-prj')
-     sys.argv.append('DIAGS-Base Project')
+#     sys.argv.append('-prj')
+#     sys.argv.append('DIAGS-Base Project')
 
 
      args = parser.parse_args()
