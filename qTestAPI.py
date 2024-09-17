@@ -384,8 +384,8 @@ class QtestAPI(object):
         server = str(server) + uri 
         headers = {'Authorization': 'Bearer {0}'.format(token)}
         results = requests.post(server, headers=headers, json=body)
-        self.check_results(results)
-
+        if not self.check_results(results):
+            return results
         return results.json()
     def check_results(self,results=None):
         m = re.match('.*40',str(results))
@@ -535,7 +535,7 @@ class QtestAPI(object):
             self.logger.warning("Response: " + str(data) )
             return data
         else:
-            self.logger.info("Warning Found Records: " + str( len(data) ) + " Found for Endpoint: " + str(endpoint) )
+            self.logger.info("Warning Found Records: " + str( len(data) ) + " Found for Endpoint: " + str(uri) )
 
         
         if lastmodified:

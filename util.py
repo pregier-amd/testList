@@ -116,6 +116,10 @@ class util(object):
                 df.to_excel(writer, sheet_name='Sheet1',index=False)
 
     def read_excel_each_sheet(self,filename,skip=[]):
+           if not os.path.isfile(filename):
+                self.logger.warning("Error File does not exist: " + str(filename))
+                # return None
+                return None
            xls = pd.ExcelFile(filename)
            data ={}
            for sheet in xls.sheet_names:
