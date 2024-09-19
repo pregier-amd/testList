@@ -358,7 +358,7 @@ class write_tr(object):
                 case 'project':
                     if not self.project:
                        # read the Projects and
-                        data = self.set_project(args['project'])
+                       self.set_project_id( args['project'])
                 case 'template':
                     print('Template Process')
                     # Dump out Templae if true
