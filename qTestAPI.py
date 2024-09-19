@@ -253,7 +253,7 @@ class QtestAPI(object):
            uri = self.uri
            
         if not endpoint:
-           self.logger.info("api get() No Endpoint")
+           self.logger.debug("api get() No Endpoint")
 
         if not parameters:
            parameters =  self.parameters
@@ -261,12 +261,12 @@ class QtestAPI(object):
         for k in parameters:
             # no Parameters on Endpoint already
             m = re.match(r'^.*\?',endpoint)
-#            param=''
+            param=''
             seperator = '&'
             if not param and not m:
                 seperator = '?'
-            else:
-                param = param + seperator+str(k)+'='+str(parameters[k])
+            # else:
+            param = param + seperator+str(k)+'='+str(parameters[k])
 
         m = re.match(r'.*\/projects\/',uri)    
         if(m):
@@ -300,7 +300,7 @@ class QtestAPI(object):
         endpoint = 'test-runs/execution-statuses'
         data = self.get(None, None, None, endpoint,None)
         return data
-    def search(self, server, token,  page_size=None, page=None, order='asc',query=None):
+    def search(self, server, token,  page_size=None, page=None, order='asc',query=None,params=None):
         """Get list of assets,use search query in body
         
         Arguments:
@@ -330,7 +330,7 @@ class QtestAPI(object):
         else:
             self.page = page
 
-        uri = self.uri + str(self.project_id) + self.endpoint +'?pageSize={0}&page={1}&order={2}&includeExternalProperties={3}'.format(str(page_size),str(page),order,'true')
+        uri = self.uri + str(self.project_id) + self.endpoint +'?pageSize={0}&page={1}&order={2}&includeExternalProperties={3}&appendTestSteps={4}'.format(str(page_size),str(page),order,'true','true')
         if not server:
            server = self.server
         server = server + uri 
@@ -535,7 +535,7 @@ class QtestAPI(object):
             self.logger.warning("Response: " + str(data) )
             return data
         else:
-            self.logger.info("Warning Found Records: " + str( len(data) ) + " Found for Endpoint: " + str(uri) )
+            self.logger.debug("Found Records: " + str( len(data) ) + " Found for Endpoint: " + str(uri) )
 
         
         if lastmodified:
@@ -745,7 +745,7 @@ class QtestAPI(object):
 
         
 
-        self.parameters = {'includeExternalProperties':True}
+        self.parameters = {'includeExternalProperties':True,'appendTestSteps':True}
         self.endpoint='/search/'
         #use qTest API to pull data
 
@@ -1146,15 +1146,21 @@ class QtestAPI(object):
         now = datetime.now(pytz.timezone('US/Central'))
         if(datetimestring):
             # convert from datetime to timestamp
+            error = ''
             try:
+                date = None
                 date =  datetime.strptime(datetimestring,informat)
                 date =  date.strftime(outformat)
-            except Exception as error:
-                self.logger.error("Time Format:", type(error).__name__, "-",error) 
+            except ValueError as error:
+                date = None
+                #self.logger.error("Time Format:", type(error).__name__, "-",error) 
+                self.logger.debug("Error: Time Format:" + str(error) )               
+                return date , error
         else:
             now = datetime.now()    
             date =  now.strftime(outformat)
-        return date      
+        
+        return date,error      
  
     def calc_duration(self,start_ts=None,end_ts=None):    
           end_ts = self.time_gen(True)
