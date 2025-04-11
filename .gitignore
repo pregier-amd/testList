@@ -379,3 +379,7 @@ FodyWeavers.xsd
 /MI350 Diag Suites Tracker.xlsx
 /ReleaseTrackerMi350.xlsx
 /remove_list.txt
+/template.xlsx
+/batch
+/runs
+/batchQueue.json
